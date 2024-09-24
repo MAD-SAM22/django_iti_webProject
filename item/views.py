@@ -3,7 +3,8 @@ from django.db.models import Q
 from django.shortcuts import render, get_object_or_404, redirect
 
 from .forms import NewItemForm, EditItemForm
-from .models import Category, Item
+from .models import Category, Item, Cart, CartItem 
+
 
 def items(request):
     query = request.GET.get('query', '')
@@ -32,6 +33,36 @@ def detail(request, pk):
         'item': item,
         'related_items': related_items
     })
+
+
+@login_required
+def add_to_cart(request, item_id):
+    item = get_object_or_404(Item, id=item_id)
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_item, created = CartItem.objects.get_or_create(cart=cart, item=item)
+    
+    if not created:
+        cart_item.quantity += 1
+    cart_item.save()
+
+    print(f"Item added to cart: {item.name}, Quantity: {cart_item.quantity}")
+
+    return redirect('item:cart_detail')  
+
+@login_required
+def cart_detail(request):
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_items = cart.items.all() 
+    return render(request, 'item/cart_detail.html', {'cart': cart, 'cart_items': cart_items})
+
+@login_required
+def remove_from_cart(request, item_id):
+    cart = Cart.objects.get(user=request.user)
+    cart_item = get_object_or_404(CartItem, cart=cart, item_id=item_id)
+    cart_item.delete()
+    
+    return redirect('item:cart_detail')  
+
 
 @login_required
 def new(request):

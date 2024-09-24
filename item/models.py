@@ -10,7 +10,7 @@ class Category(models.Model):
     
     def __str__(self):
         return self.name
-
+    
 class Item(models.Model):
     category = models.ForeignKey(Category, related_name='items', on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -23,3 +23,24 @@ class Item(models.Model):
     
     def __str__(self):
         return self.name
+
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart of {self.user.username}"
+
+    def total_price(self):
+        return sum(item.total_price() for item in self.items.all())
+    
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, related_name='items', on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"{self.quantity} of {self.item.name}"
+
+    def total_price(self):
+        return self.quantity * self.item.price
